@@ -1,7 +1,10 @@
 <?php
-$_logData[] = [];
+require("myLib.php");
 
+$_logData[] = [];
+if(!isset($_SESSION)){
 session_start();
+}
 $sql = 'SELECT * FROM log ORDER BY id DESC LIMIT 100'
 
 try{
@@ -26,6 +29,6 @@ catch(PDOException $e){
     print("エラー検出 : GetLog");
 }
 
-foreach($_logData as $log){?>
-  <tr><td><?php htmlspecialchars($log["username"])?></td><td><?php htmlspecialchars($log["message"])?></td></tr>
-<?php } ?>
+$flag = false;
+
+$this->sendjson($flag,$_logData);

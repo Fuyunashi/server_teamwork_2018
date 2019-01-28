@@ -25,11 +25,14 @@ function connectDB(){
 class hitblowAPI {
   //初期化
   function auth(){
+		if(!isset($_SESSION)){
+			session_start();
+		}
 		$firstContactSql = null;
     //初めてのアクセスなら新しく作る
 		if(!isset($_SESSION['username'])){
 			$_SESSION['username'] = $_POST['username'];
-			$firstContactSql = 'INSERT INTO user(username,pickNumber) VALUES(:name,:number)';
+			$firstContactSql = 'INSERT INTO user(username,pickNumber,loginState) VALUES(:name,:number,:loginState)';
 		}
 
     $sql = 'SELECT loginState FROM user WHERE loginState = :state AND username != :name';
@@ -56,8 +59,67 @@ class hitblowAPI {
     }
   }
 
+	function isMatch($enemyName,$number){
+		if(!isset($_SESSION)){
+			session_start();
+		}
+		$sql = 'SELECT pickNumber FROM user WHERE username == :name';
+		try{
+			$dbh = connectDB();
+			$dbh->beginTransaction();
+			$prepare = $dbh->prepare($sql);
+			$prepare->execute(array(':name' => $enemyName));
+			$buff = $prepare->fetch(PDO::FETCH_ASSOC);
+			if($buff == null){
+				return;
+			}
+			#相手の数字
+			$buffs = str_split($buff);
+			#プレイヤーがコールした数字
+			$numbers = str_split($number);
+			#勝利時の処理
+			if($buff == $number){
+				#
+				return;
+			}
+			$hitCnt = 0;
+			$blowCnt = 0;
+			for($i = 0;$i < 3;$i++){
+				if(strpos($buffs,$numbers[$i]) !== false){
+					$blowCnt++;
+				}
+			}
+
+			if($buffs[0] == $numbers[0]){
+				$hitCnt++;
+				$blowCnt--;
+			}
+			if($buffs[1] == $numbers[1]){
+				$hitCnt++;
+				$blowCnt--;
+			}
+			if($buffs[2] == $numbers[2]){
+				$hitCnt++;
+				$blowCnt--;
+			}
+			$sql = 'INSERT INTO log(username,message) VALUES (:name,:message)';
+			$dbh = connectDB();                 //接続
+			$dbh->beginTransaction();
+			$stmt = $dbh->prepare($sql);         //SQL準備
+			$stmt->execute(array(':name' => $_POST['username'],':message' => $hitCnt."HIT ".$blowCnt."BLOW"));
+			$dbh->commit();
+		}
+		catch(PDOException $e){
+			$dbh->rollBack();
+			print("エラー検出 : isMatch");
+		}
+
+	}
+
   function end(){
-    session_start();
+		if(!isset($_SESSION)){
+			session_start();
+		}
     $sql = 'UPDATE user SET loginState = :state WHERE username = :name';
 
     try{
@@ -74,11 +136,13 @@ class hitblowAPI {
   }
 
   function set($number){
-		session_start();
+		if(!isset($_SESSION)){
+			session_start();
+		} 
     //初めてのアクセスなら新しく作る
     if(!isset($_SESSION['username'])){
       $_SESSION['username'] = $_POST['username'];
-      $sql = 'INSERT INTO user(username,pickNumber) VALUES(:name,:number)';
+      $sql = 'INSERT INTO user(username,pickNumber,loginState) VALUES(:name,:number,"login")';
     } else {
       $sql = 'UPDATE user SET pickNumber = :number WHERE username = :name';
     }
@@ -97,7 +161,9 @@ class hitblowAPI {
 	}
 
 	function AddLog($message){
-		session_start();
+		if(!isset($_SESSION)){
+			session_start();
+		}
 		$sql = 'INSERT INTO log(username,message) VALUES(:name,:message)';
 
 		try{
