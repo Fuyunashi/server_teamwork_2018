@@ -1,0 +1,20 @@
+body {
+  width:  64px;
+  height: 64px;
+  background-image: url(b124.jpg);
+  background-repeat: repeat;
+  background-position: right bottom;
+}
+
+h1 {
+  width: 100px;
+}
+
+p {
+  padding-bottom: 1px;
+}
+
+form {
+  width: 300px;
+  height: auto;
+}
